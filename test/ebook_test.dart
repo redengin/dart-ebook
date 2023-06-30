@@ -1,3 +1,5 @@
+import 'dart:js_interop';
+
 import 'package:test/test.dart';
 
 import 'package:ebook/ebook.dart';
@@ -23,6 +25,14 @@ void main() async {
 
   test('validate META-INF/container.xml', () {
     assert(ebook.validateContainer());
+  });
+
+  test('get EBook Info', () {
+    var info = ebook.getInfo();
+    assert(info!.identifiers.isNotEmpty);
+    assert(info!.titles.isNotEmpty);
+    assert(info!.languages.isNotEmpty);
+    assert(info!.coverImageRefs.isNotEmpty);
   });
 
   tmpDir.delete(recursive: true);
