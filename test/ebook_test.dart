@@ -33,6 +33,7 @@ void main() async {
     assert(info!.titles.isNotEmpty);
     assert(info!.languages.isNotEmpty);
     assert(info!.coverImageRefs.isNotEmpty);
+    assert(ebook.getImage(info!.coverImageRefs[0])!.lengthInBytes > 0);
   });
 
   tmpDir.delete(recursive: true);

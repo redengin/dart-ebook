@@ -1,14 +1,15 @@
 library ebook;
 
-import 'dart:convert';
-
 import 'package:archive/archive_io.dart';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:xml/xml.dart';
 import 'package:xml/xpath.dart';
+import 'package:image/image.dart' as DartImage;
+import 'package:path/path.dart' as Path;
 
 class EBook {
   late final Archive _archive;
-  String? _rootPath;
   EBookInfo? _ebookInfo;
 
   EBook(String path) {
@@ -31,60 +32,95 @@ class EBook {
             "application/oebps-package+xml")) {
       return false;
     }
-    _rootPath = roots.first.getAttribute("full-path");
+    _rootfilePath = roots.first.getAttribute("full-path");
     return true;
   }
 
   EBookInfo? getInfo() {
     if(_ebookInfo != null) return _ebookInfo;
 
-    String? rootPath = _rootPath ?? _getRootPath();
+    String? rootPath = _getRootfilePath();
     if(rootPath == null) return null;
     var file = _archive.findFile(rootPath);
     if (file == null) return null;
 
     var document = XmlDocument.parse(utf8.decode(file.content));
-    final identifiers = document.xpath('package/metadata/identifier')
+    // FIXME dc namespace is not a requirement, but this xpath doesn't support local-name()
+    final identifiers = document.xpath('//package/metadata/dc:identifier')
         .map((node) => node.innerText)
         .toList(growable: false);
-    final titles = document.xpath('package/metadata/title')
+    final titles = document.xpath('//package/metadata/dc:title')
         .map((node) => node.innerText)
         .toList(growable: false);
-    final languages = document.xpath('package/metadata/language')
+    final languages = document.xpath('//package/metadata/dc:language')
         .map((node) => node.innerText)
         .toList(growable: false);
     final coverImageRefs = document.xpath('package/manifest/item[@properties="cover-image"]')
-        .map((node) => CoverImageRef(node.getAttribute("href"), node.getAttribute("media-type")))
+        .map((node) => ImageRef(node.getAttribute("href")!, node.getAttribute("media-type")))
         .toList(growable: false);
     // memo the info so we don't need to reparse
-    _ebookInfo = EBookInfo(identifiers, titles, languages, coverImageRefs);
+    _ebookInfo = EBookInfo(this, identifiers, titles, languages, coverImageRefs);
 
     return _ebookInfo;
   }
 
-  String? _getRootPath() {
+  Uint8List? readContainerFile(String href) {
+    var containerPath = _getContainerPath();
+    if(containerPath == null)
+      return null;
+
+    var file = _archive.findFile(Path.join(containerPath, href));
+    if(file == null)
+      return null;
+
+    return file.content;
+  }
+
+  DartImage.Image? getImage(ImageRef ref) {
+    var content = readContainerFile(ref.href);
+    if(content == null)
+      return null;
+
+    return DartImage.decodeImage(content);
+  }
+
+  String? _rootfilePath;
+  String? _getRootfilePath() {
+    // shortcut if we've already found the file
+    if(_rootfilePath != null)
+      return _rootfilePath;
+
+    // parse the container.xml
     var file = _archive.findFile("META-INF/container.xml");
     if (file == null) return null;
     var document = XmlDocument.parse(utf8.decode(file.content));
     var roots = document.xpath("container/rootfiles/rootfile");
     // memo the rootPath so we don't need to reparse
-    _rootPath = roots.first.getAttribute("full-path");
-    return _rootPath;
+    _rootfilePath = roots.first.getAttribute("full-path");
+    return _rootfilePath;
+  }
+
+  String? _getContainerPath() {
+    final rootfilePath = _getRootfilePath();
+    if(rootfilePath == null)
+      return null;
+    return Path.dirname(rootfilePath);
   }
 }
 
 class EBookInfo {
+  final EBook ebook;
   final List<String> identifiers;
   final List<String> titles;
   final List<String> languages;
-  final List<CoverImageRef> coverImageRefs;
+  final List<ImageRef> coverImageRefs;
 
-  EBookInfo(this.identifiers, this.titles, this.languages, this.coverImageRefs);
+  EBookInfo(this.ebook, this.identifiers, this.titles, this.languages, this.coverImageRefs);
 }
 
-class CoverImageRef {
-  final String? href;
+class ImageRef {
+  final String href;
   final String? mediaType;
 
-  CoverImageRef(this.href, this.mediaType);
+  ImageRef(this.href, this.mediaType);
 }

@@ -10,6 +10,8 @@ environment:
 dependencies:
   archive: ^3.3.7
   xml: ^6.3.0
+  image: ^4.0.17
+  path: ^1.8.3
 
 dev_dependencies:
   test: ^1.0.0
