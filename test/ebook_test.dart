@@ -1,5 +1,3 @@
-import 'dart:js_interop';
-
 import 'package:test/test.dart';
 
 import 'package:ebook/ebook.dart';
