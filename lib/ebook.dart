@@ -76,14 +76,6 @@ class EBook {
     return file.content;
   }
 
-  DartImage.Image? getImage(ImageRef ref) {
-    var content = readContainerFile(ref.href);
-    if(content == null)
-      return null;
-
-    return DartImage.decodeImage(content);
-  }
-
   String? _rootfilePath;
   String? _getRootfilePath() {
     // shortcut if we've already found the file
