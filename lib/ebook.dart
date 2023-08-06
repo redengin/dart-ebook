@@ -1,19 +1,21 @@
 library ebook;
 
+import 'dart:io';
+
 import 'package:archive/archive_io.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:xml/xml.dart';
 import 'package:xml/xpath.dart';
-import 'package:image/image.dart' as DartImage;
 import 'package:path/path.dart' as Path;
 
 class EBook {
+  final File file;
   late final Archive _archive;
   EBookInfo? _ebookInfo;
 
-  EBook(String path) {
-    _archive = ZipDecoder().decodeBuffer(InputFileStream(path));
+  EBook(this.file) {
+    _archive = ZipDecoder().decodeBuffer(InputFileStream(this.file.path));
   }
 
   bool validateMimeType() {

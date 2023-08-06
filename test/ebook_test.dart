@@ -15,7 +15,7 @@ void main() async {
   final ebook_data = await response.pipe(
     tmpFile.openWrite()
   );
-  final ebook = EBook(tmpFile.path);
+  final ebook = EBook(tmpFile);
 
   test('validate epub3 mimetype', () {
     assert(ebook.validateMimeType());
